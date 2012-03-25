@@ -40,14 +40,14 @@ bool my_compress(uint32_t* data, uint32_t len, uint32_t*& out, uint32_t& out_len
     uint32_t* last_word = out;
     uint32_t a = 32; // denotes the number of bits remaining in last word
     uint32_t k = floor(log2((data[len-1] - data[0]) / len)) + 1;
-    printf("K: %u\n", k);
     *last_word = k; last_word++; // store k as first element since we need it later
     last_word++; // leave another space for storing offset in the final word
     *last_word = 0;
+    printf("k: %u\n", k);
 
     for (int i=0; i<len; i++) {
         uint32_t n = data[i];
-        int32_t m = floor(log2(n)) + 1; // number of bits reqd.
+        int32_t m = (n > 0? floor(log2(n)) + 1: 1); // number of bits reqd.
         while (m > 0) {
             uint32_t bm = get_least_sig_k_bitmask(k);
             uint32_t x = n & bm;
@@ -102,8 +102,6 @@ bool my_decompress(uint32_t* data, uint32_t len, uint32_t*& out, uint32_t& out_l
         bool of;
         while (a >= k+1) {
             uint32_t num_bits_read;
-            if (i == len-1 && a == 32-finoff)
-                break;
             if (rem > 0) { // we have a partial fragment from before
                 // read rem bits
                 num_bits_read = rem;
@@ -128,6 +126,8 @@ bool my_decompress(uint32_t* data, uint32_t len, uint32_t*& out, uint32_t& out_l
                 cur = 0;
                 b = 0;
             }
+            if (i == len-1 && a == 32-finoff)
+                goto exit_loop;
         }
         // get LS a bits
         uint32_t bm = get_least_sig_k_bitmask(a);
@@ -135,6 +135,11 @@ bool my_decompress(uint32_t* data, uint32_t len, uint32_t*& out, uint32_t& out_l
         rem = (k+1-a);
         x <<= rem; // make space for remaining bits
         assert(rem > 0);
+    }
+exit_loop:
+    if (rem != 0) {
+        printf("rem: %u\n", rem);
+        assert(false);
     }
     printf("Size of data: %lu\n", sizeof(uint32_t) * len);
     printf("Size of decompressed: %lu\n", out_len*sizeof(uint32_t));    
@@ -144,8 +149,8 @@ bool compress(uint32_t* data, uint32_t len, uint32_t*& out, uint32_t& out_len)
 {
     for (int i=len-1; i>=1; i--)
         data[i] -= data[i-1];
-    for (int i=0; i<len; i++)
-        printf("send: %u\n", data[i]);
+//    for (int i=0; i<len; i++)
+//        printf("send: %u\n", data[i]);
     my_compress(data, len, out, out_len);
     for (int i=1; i<len; i++)
         data[i] += data[i-1];
@@ -154,8 +159,8 @@ bool compress(uint32_t* data, uint32_t len, uint32_t*& out, uint32_t& out_len)
 bool decompress(uint32_t* data, uint32_t len, uint32_t*& out, uint32_t& out_len)
 {
     my_decompress(data, len, out, out_len);
-    for (int i=0; i<out_len; i++)
-        printf("recd: %u\n", out[i]);
+//    for (int i=0; i<out_len; i++)
+//        printf("recd: %u\n", out[i]);
     for (int i=1; i<out_len; i++)
         out[i] += out[i-1];
 } 
@@ -236,18 +241,18 @@ void check_match(uint32_t* a, uint32_t alen, uint32_t* b, uint32_t blen)
             assert(false);
         }
     }
+    printf("Match successful\n");
 }
 
 int main()
 {
-    uint32_t n = 10;//240;
+    uint32_t n = 10000;
     uint32_t* data = (uint32_t*)calloc(n, sizeof(uint32_t));
     uint32_t* comp = (uint32_t*)calloc(n+4, sizeof(uint32_t));
     uint32_t* decomp = (uint32_t*)calloc(n+4, sizeof(uint32_t));
     uint32_t comp_len;
     uint32_t decomp_len;
     uint32_t min = (UINT32_MAX / 64) * 63;
-    printf("Min %u\n", min);
     for (uint32_t i=0; i<n; i++) {
         data[i] = min + (rand() % (UINT32_MAX - min - 1));
     }
