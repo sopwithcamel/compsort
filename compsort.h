@@ -6,7 +6,6 @@
 #include <assert.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <stdio.h>
 #include <math.h>
 
 using namespace std;
@@ -31,7 +30,6 @@ namespace CompSort {
         uint32_t k = floor(log2((data[len-1] - data[0]) / len)) + 1;
         *last_word = k; last_word++; // store k as first element since we need it later
         last_word++; // leave another space for storing offset in the final word
-        printf("k: %u\n", k);
 
         for (int i=0; i<len; i++) {
             uint32_t n = data[i];
@@ -69,8 +67,6 @@ namespace CompSort {
         }
         out_len = (last_word - out) + (a == 32? 0 : 1);
         out[1] = 32-a; // store final offset in second word
-        printf("Size of data: %lu\n", sizeof(uint32_t) * len);
-        printf("Size of compressed: %lu\n", out_len * sizeof(uint32_t));    
     }
 
 
@@ -125,11 +121,8 @@ namespace CompSort {
         }
 exit_loop:
         if (rem != 0) {
-            printf("rem: %u\n", rem);
             assert(false);
         }
-        printf("Size of data: %lu\n", sizeof(uint32_t) * len);
-        printf("Size of decompressed: %lu\n", out_len*sizeof(uint32_t));    
     }
 };
 
